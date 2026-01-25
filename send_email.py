@@ -1,6 +1,7 @@
 import smtplib
 from email.message import EmailMessage
 import os
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,12 +30,25 @@ if __name__ == "__main__":
     to = os.getenv("RECIPIENT_ADDRESS")
     subject = "Test email"
     body = """
-    <a href="https://api.bestbuy.com/click/-/6575404/pdp">Click this link</a>
+    Hi,
+
+    Here’s the product link you asked for:
+
+    # https://api.bestbuy.com/click/-/6575404/pdp
+
+    Let me know if you want more details.
+
+    Thanks,
+    Your Name
     """
+    # body = """
+    # <a href="https://api.bestbuy.com/click/-/6575404/pdp">Click this link</a>
+    # """
 
     try:
         send_email(to, subject, body)
     except Exception as e:
-        SystemExit(e)
+        raise e
+        sys.exit(1)
 
     print("sent!")
