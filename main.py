@@ -95,7 +95,7 @@ def main():
         delay = 2
         exp = 0
 
-        url = f"https://api.bestbuy.com/v1/products/{p["sku"]}.json?show={FIELDS}&apiKey={os.getenv('BESTBUY_API')}"
+        url = f"https://api.bestbuy.com/v1/products/{p['sku']}.json?show={FIELDS}&apiKey={os.getenv('BESTBUY_API')}"
 
         # fetch product data from API
         for i in range(retries):  # exponential backoff
