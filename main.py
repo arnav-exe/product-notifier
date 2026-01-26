@@ -9,16 +9,16 @@ from ntfy_templates import sale_ntfy, non_sale_ntfy
 load_dotenv()
 
 PRODUCTS = [
-    # {  # airpods pro 3
-    #     "sku": 6376563,
-    #     "desired_price": 200,
-    #     "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
-    # },
-    # {  # lenovo legion go 2
-    #     "sku": 6643145,
-    #     "desired_price": 1500,
-    #     "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
-    # },
+    {  # airpods pro 3
+        "sku": 6376563,
+        "desired_price": 200,
+        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
+    },
+    {  # lenovo legion go 2
+        "sku": 6643145,
+        "desired_price": 1500,
+        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
+    },
     {  # LG 27 inch 1440p 180hz monitor (TESTING)
         "sku": 6575404,
         "desired_price": 400,
@@ -50,11 +50,10 @@ def get_product_data(url: str):
         raw_data.raise_for_status()
 
     except requests.exceptions.HTTPError as e:  # fail
-        print(raw_data.text)
-        raise SystemExit(f"HTTP Error:\n{e}")
+        pass
 
     except Exception as e:
-        raise SystemExit(f"Other Error:\n{e}")
+        pass
 
     # success
     data = raw_data.json()
@@ -62,7 +61,7 @@ def get_product_data(url: str):
     return data
 
 
-def parse_product_data(product: dict, user_product_data: dict):
+def parse_and_notify(product: dict, user_product_data: dict):
     product_name = " ".join(product["name"].split()[:5])
 
     sent_ntfy = False
@@ -86,24 +85,37 @@ def parse_product_data(product: dict, user_product_data: dict):
 
 
 def main():
-    # implement exponential backoff with 10 retries (starting at 1s)
-
     for p in PRODUCTS:
+        # exponential backoff params
+        retries = 10
+        delay = 2
+        exp = 0
+
         url = f'https://api.bestbuy.com/v1/products/{p["sku"]}.json?show={FIELDS}&apiKey={os.getenv('BESTBUY_API')}'
 
-        # TODO: add exponential backoff to API fetching (20 total retries)
         # fetch product data from API
-        data = get_product_data(url)
+        for i in range(retries):  # exponential backoff
+            data = get_product_data(url)
 
-        # data parsing logic
-        sent_ntfy = parse_product_data(data, p)
+            if "errorCode" in data:  # if returned dict contains 'errorCode' (implying fetch was unsuccessful)
+                print(data)
+                sleep_time = (delay ** exp) / 2
+                time.sleep(sleep_time)
+                exp += 1
 
-        if sent_ntfy:
-            print(f"Sent ntfy notification for product: {p['sku']}")
-        else:
-            print(f"ntfy notification NOT sent for product: {p['sku']}")
+            else:
+                break
 
-        time.sleep(0.5)
+        # parse returned data and fire noti
+        sent_ntfy = parse_and_notify(data, p)
+
+        # if sent_ntfy:
+        #     print(f"Sent ntfy notification for product: {p['sku']}")
+        #
+        # else:
+        #     print(f"Did NOT send ntfy notification for product {p['sku']} (either out of stock or above desired price)")
+
+        print()
 
 
 if __name__ == "__main__":
