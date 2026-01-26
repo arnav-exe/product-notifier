@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 from send_ntfy import post_ntfy
 from ntfy_templates import sale_ntfy, non_sale_ntfy
+from log_handler import init_logger
 
 load_dotenv()
 
@@ -85,7 +86,10 @@ def parse_and_notify(product: dict, user_product_data: dict):
 
 
 def main():
+    logger = init_logger()
+    logger.info("="*80)
     for p in PRODUCTS:
+        logger.info()
         # exponential backoff params
         retries = 10
         delay = 2
@@ -98,7 +102,7 @@ def main():
             data = get_product_data(url)
 
             if "errorCode" in data:  # if returned dict contains 'errorCode' (implying fetch was unsuccessful)
-                print(data)
+                logger.warning(data)
                 sleep_time = (delay ** exp) / 2
                 time.sleep(sleep_time)
                 exp += 1
@@ -109,13 +113,14 @@ def main():
         # parse returned data and fire noti
         sent_ntfy = parse_and_notify(data, p)
 
-        # if sent_ntfy:
-        #     print(f"Sent ntfy notification for product: {p['sku']}")
-        #
-        # else:
-        #     print(f"Did NOT send ntfy notification for product {p['sku']} (either out of stock or above desired price)")
+        if sent_ntfy:
+            logger.info(f"Sent ntfy notification for product: {p['sku']}")
 
-        print()
+        else:
+            logger.info(f"Did NOT send ntfy notification for product {p['sku']} (either out of stock or above desired price)")
+
+        logger.info()
+        logger.info("="*80)
 
 
 if __name__ == "__main__":
