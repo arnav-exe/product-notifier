@@ -46,7 +46,7 @@ def non_sale_ntfy(name, regular_price, desired_price, url, price_update_date):
     if regular_price < desired_price:
         dollar_savings = desired_price - regular_price
         dollar_savings = round(dollar_savings, 2)
-        percent_savings = regular_price / desired_price * 100
+        percent_savings = (100 - (regular_price / desired_price)) * 100
         percent_savings = round(percent_savings, 1)
 
         return f"""### {name} is now in stock!

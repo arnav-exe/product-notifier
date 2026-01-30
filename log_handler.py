@@ -3,10 +3,15 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 import os
 
-LOG_DIR = "logs"
+BASE_DIR = Path(__file__).resolve().parent
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
 LOG_FILE = Path(LOG_DIR) / "console-output.log"
+
+print(LOG_DIR)
+print(LOG_FILE)
 
 
 def init_logger():
@@ -30,4 +35,3 @@ def init_logger():
     logger.propagate = False
 
     return logger
-

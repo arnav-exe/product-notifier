@@ -85,42 +85,46 @@ def parse_and_notify(product: dict, user_product_data: dict):
     return sent_ntfy
 
 
+def process_products(logger, p):
+    logger.info("")
+    # exponential backoff params
+    retries = 10
+    delay = 2
+    exp = 0
+
+    url = f"https://api.bestbuy.com/v1/products/{p['sku']}.json?show={FIELDS}&apiKey={os.getenv('BESTBUY_API')}"
+
+    # fetch product data from API
+    for i in range(retries):  # exponential backoff
+        data = get_product_data(url)
+
+        if "errorCode" in data:  # if returned dict contains 'errorCode' (implying fetch was unsuccessful)
+            logger.warning(data)
+            sleep_time = (delay ** exp) / 2
+            time.sleep(sleep_time)
+            exp += 1
+
+        else:
+            break
+
+    # parse returned data and fire noti
+    sent_ntfy = parse_and_notify(data, p)
+
+    if sent_ntfy:
+        logger.info(f"Sent ntfy notification for product: {p['sku']}")
+
+    else:
+        logger.info(f"Did NOT send ntfy notification for product {p['sku']} (either out of stock or above desired price)")
+
+    logger.info("")
+    logger.info("="*80)
+
+
 def main():
     logger = init_logger()
     logger.info("="*80)
     for p in PRODUCTS:
-        logger.info("")
-        # exponential backoff params
-        retries = 10
-        delay = 2
-        exp = 0
-
-        url = f"https://api.bestbuy.com/v1/products/{p['sku']}.json?show={FIELDS}&apiKey={os.getenv('BESTBUY_API')}"
-
-        # fetch product data from API
-        for i in range(retries):  # exponential backoff
-            data = get_product_data(url)
-
-            if "errorCode" in data:  # if returned dict contains 'errorCode' (implying fetch was unsuccessful)
-                logger.warning(data)
-                sleep_time = (delay ** exp) / 2
-                time.sleep(sleep_time)
-                exp += 1
-
-            else:
-                break
-
-        # parse returned data and fire noti
-        sent_ntfy = parse_and_notify(data, p)
-
-        if sent_ntfy:
-            logger.info(f"Sent ntfy notification for product: {p['sku']}")
-
-        else:
-            logger.info(f"Did NOT send ntfy notification for product {p['sku']} (either out of stock or above desired price)")
-
-        logger.info("")
-        logger.info("="*80)
+        process_products(logger, p)
 
 
 if __name__ == "__main__":
