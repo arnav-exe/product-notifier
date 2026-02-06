@@ -15,9 +15,11 @@ class DataSource(ABC):
         # parse raw data into compatible format
         pass
 
-    @abstractmethod
     def fetch_product(self):
         # main method for fetching and parsing data
         data = self.fetch_raw()
 
         return self.parse(data)
+
+    def can_handle(self, retailer_name):
+        return self.source_name == retailer_name

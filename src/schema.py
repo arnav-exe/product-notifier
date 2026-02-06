@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
 
-# use class for explicit shape
+# class for explicit shape
 @dataclass
 class Product:
-    identifier: str  # EG: sku code, asin code. etc.
+    identifier: str  # EG: sku, asin code. etc.
     product_name: str
     in_stock: bool
     on_sale: bool
@@ -29,7 +29,17 @@ class Product:
 
 if __name__ == "__main__":
     # testing
-    p = Product("B0FQFB8FMG", "airpods pro 3", True, True, 199.99, 249.99, "https://amazon.com/dp/airpods-pro-3", "https://www.amazon.com/dp/B0FQFB8FMG", "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg")
+    p = Product(
+        "B0FQFB8FMG",
+        "airpods pro 3",
+        True,
+        True,
+        199.99,
+        249.99,
+        "https://amazon.com/dp/airpods-pro-3",
+        "amazon",
+        "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"
+    )
 
     print(p.dollar_savings)
     print(p.percent_savings)

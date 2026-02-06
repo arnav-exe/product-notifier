@@ -3,9 +3,9 @@ import time
 import os
 from dotenv import load_dotenv
 
-from send_ntfy import post_ntfy
-from ntfy_templates import sale_ntfy, non_sale_ntfy
-from log_handler import init_logger
+from src.send_ntfy import post_ntfy
+from src.ntfy_templates import sale_ntfy, non_sale_ntfy
+from src.log_handler import init_logger
 
 load_dotenv()
 
@@ -130,3 +130,11 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # register all data sources to registry
+    # for each product obj in PRODUCTS arr:
+        # for each source from the registry:
+            # if {src}.can_handle({identifier}):
+                # call the generic fetch data function
+
+    # at some point (either after each succesful fetch or after both for loops have executed), run logic to determine whether to send ntfy or not
