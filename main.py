@@ -11,19 +11,46 @@ load_dotenv()
 
 PRODUCTS = [
     {  # airpods pro 3
-        "bestbuy_sku": 6376563,
-        "amazon_asin": "B0FQFB8FMG",
         "desired_price": 200,
+        "identifiers": [
+            {"bestbuy": 6376563},
+            {"amazon": "B0FQFB8FMG"}
+        ],
+        "stock_notifier": False,
+        "sale_notifier": True,
         "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
     },
-    {  # lenovo legion go 2
-        "bestbuy_sku": 6643145,
+
+    {  # lenovo legion go 2 - 1tb
+        "desired_price": 1400,
+        "identifiers": [
+            {"bestbuy": 6643145},
+            {"amazon": "B0G573TMZS"},
+        ],
+        "stock_notifier": True,
+        "sale_notifier": False,
+        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
+    },
+
+    {  # lenovo legion go 2 - 2tb
         "desired_price": 1500,
+        "identifiers": [
+            {"bestbuy": 6666376},
+            {"amazon": "B0FYR2V7ZB"},
+        ],
+        "stock_notifier": True,
+        "sale_notifier": False,
         "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
     },
+
     {  # LG 27 inch 1440p 180hz monitor (TESTING)
-        "bestbuy_sku": 6575404,
         "desired_price": 400,
+        "identifiers": [
+            {"bestbuy": 6575404},
+            {"bhvideo": "some_sku_number"}
+        ],
+        "stock_notifier": True,
+        "sale_notifier": True,
         "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
     }
 ]

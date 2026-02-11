@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+import sys
 import requests
 
 try:
@@ -18,7 +19,7 @@ FIELDS = ','.join(FIELDS_ARR)
 class BestbuySource(DataSource):
     source_name = "bestbuy"
 
-    def fetch_raw(self, identifier: str, logger) -> dict:
+    def fetch_raw(self, identifier: str) -> dict:
         headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -40,10 +41,10 @@ class BestbuySource(DataSource):
             raw_data.raise_for_status()
 
         except requests.exceptions.HTTPError as e:
-            logger.error(e)
+            sys.exit(e)
 
         except Exception as e:
-            logger.error(e)
+            sys.exit(e)
 
         return raw_data
 
@@ -70,6 +71,4 @@ if __name__ == "__main__":
 
     print(bestbuy.source_name)
 
-    import logging
-    logger = logging.getLogger()
-    res = bestbuy.fetch_raw(6376563, logger)
+    res = bestbuy.fetch_raw("6376563")
