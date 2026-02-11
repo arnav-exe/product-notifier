@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 
 class DataSource(ABC):
-    source_name: str
+    source_name: str  # class variable
 
     @abstractmethod
     def fetch_raw(self):
