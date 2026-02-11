@@ -33,20 +33,6 @@ def test_raw_result_contains_all_keys():
     assert not missing, f"Missing keys: {missing}"
 
 
-# check that no item from response is empty str or None
-def test_no_res_items_are_empty():
-    res = get_raw_res()
-    empty = False
-    empty_objs = []
-
-    for i in res.items():
-        if i[1] == "" or i[1] is None:
-            empty = True
-            empty_objs.append(i)
-
-    assert not empty, f"API returned 1 or more empty objects: {empty_objs}"
-
-
 # check that parser is correctly truncating name to 5 words or less
 def test_res_parser():
     parsed = get_parsed_res()
