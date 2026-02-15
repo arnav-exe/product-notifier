@@ -34,8 +34,5 @@ class DataSource(ABC):
             "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"
         )
 
-    def test():
-        print("test function triggered!")
-
     def can_handle(self, retailer_name):
         return self.source_name == retailer_name

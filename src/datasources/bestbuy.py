@@ -12,7 +12,7 @@ from .registry import SourceRegistry
 
 load_dotenv()
 
-FIELDS_ARR = ["sku", "orderable", "name", "onSale", "regularPrice", "salePrice", "dollarSavings", "percentSavings", "priceUpdateDate", "url"]
+FIELDS_ARR = ["sku", "orderable", "name", "onSale", "regularPrice", "salePrice", "url"]
 FIELDS = ','.join(FIELDS_ARR)
 
 

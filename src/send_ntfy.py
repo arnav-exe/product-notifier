@@ -15,6 +15,7 @@ def post_ntfy(body, ntfy_topic):
             "Tags": "loudspeaker",
             "Icon": "https://corporate.bestbuy.com/wp-content/uploads/thegem-logos/logo_0717ce843a2125d21ef450e7f05f352e_1x.png",
             "Markdown": "yes",
+            # TODO: ADD ACTION BUTTON TO COPY URL TO CLIPBOARD (https://docs.ntfy.sh/publish/#action-buttons)
         }
     )
 
