@@ -14,16 +14,14 @@ load_dotenv()
 
 DATASOURCE_PATH = Path("src\\datasources\\")
 
-# GET RID OF NOTIFICATION_RULES. WHY WOULD THE USER CARE IF PRODUCT IS ON SALE OR NOT AS LONG AS IT IS BELOW 'user_max_price', THEREFORE JUST HAVE A 'max_price' FIELD AND THEN IN THE MAIN FLOW CHECK IF EITHER REGULAR PRICE OR SALE PRICE IS BELOW 'max_price' AND FIRE APPROPRIATE NOTIFICAITON
 WATCHLIST = [
     {  # airpods pro 3
         "identifiers": {
             "bestbuy": 6376563,
             "amazon": "B0FQFB8FMG"
         },
-        # only notifies if product is in stock AND on sale below user_max_price
         "user_max_price": 200,
-        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")  # maybe get rid of this - see .env comments
+        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
     },
     {  # lenovo legion go 2
         "identifiers": {
@@ -32,16 +30,15 @@ WATCHLIST = [
             "lenovo": "some_sku_number"
         },
         "user_max_price": None,
-        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")  # maybe get rid of this - see .env comments
+        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
     },
     {  # LG 27 inch 1440p 180hz monitor (TESTING)
-        # notifies if product is EITHER in stock for less than $400 OR in stock AND on sale for less than $350
         "identifiers": {
             "bestbuy": 6575404,
             "bhvideo": "some_sku_number"
         },
         "user_max_price": 350,
-        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")  # maybe get rid of this - see .env comments
+        "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
     }
 ]
 
@@ -113,6 +110,9 @@ def import_datasources():
             importlib.import_module(src_import_str)
 
 
+def jprint(json_data):
+    print(json.dumps(json_data, indent=2))
+
 # do all processing stages for 1 product at a time
 def main():
     sources = SourceRegistry.all()
@@ -123,7 +123,10 @@ def main():
             if src_name in sources:
                 # fetch standardized product data
                 data_fetcher = SourceRegistry.get(src_name)
+
                 product = data_fetcher.fetch_product(identifier)
+
+                print(product)
 
                 # check if data meets user reqs
                 if product.in_stock:
@@ -131,17 +134,17 @@ def main():
                         if product.on_sale and product.sale_price <= item["user_max_price"]:
                             # fire noti saying that product is in stock AND on sale AND below user_max_price
                             on_sale_body = on_sale(product, item["user_max_price"])
-                            post_ntfy(on_sale_body, os.getenv("NTFY_TOPIC_URL"))
+                            post_ntfy(on_sale_body, product.product_url, product.retailer_name, product.retailer_logo, os.getenv("NTFY_TOPIC_URL"))
 
                         elif product.regular_price <= item["user_max_price"]:
                             # fire noti saying product is in stock AND below user_max_price
                             below_max_price_body = below_max_price(product, item["user_max_price"])
-                            post_ntfy(below_max_price_body, os.getenv("NTFY_TOPIC_URL"))
+                            post_ntfy(below_max_price_body, product.product_url, product.retailer_name, product.retailer_logo, os.getenv("NTFY_TOPIC_URL"))
 
                     elif item["user_max_price"] is None:
                         # fire noti saying product is in stock
                         in_stock_body = in_stock(product)
-                        post_ntfy(in_stock_body, os.getenv("NTFY_TOPIC_URL"))
+                        post_ntfy(in_stock_body, product.product_url, product.retailer_name, product.retailer_logo, os.getenv("NTFY_TOPIC_URL"))
 
 
 if __name__ == "__main__":

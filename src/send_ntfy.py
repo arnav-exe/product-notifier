@@ -5,17 +5,17 @@ import os
 load_dotenv()
 
 
-def post_ntfy(body, ntfy_topic):
+def post_ntfy(body, product_url, retailer_name, retailer_logo_url, ntfy_topic):
     requests.post(
         ntfy_topic,
         data=body,
         headers={
-            "Title": "BestBuy Alert",
+            "Title": f"{retailer_name} Alert",
             "Priority": "default",
             "Tags": "loudspeaker",
-            "Icon": "https://corporate.bestbuy.com/wp-content/uploads/thegem-logos/logo_0717ce843a2125d21ef450e7f05f352e_1x.png",
+            "Icon": retailer_logo_url,
             "Markdown": "yes",
-            # TODO: ADD ACTION BUTTON TO COPY URL TO CLIPBOARD (https://docs.ntfy.sh/publish/#action-buttons)
+            # "Actions": f"copy, Copy URL, product_url, clear=true", # not implemented yet bomboclaart - wait for v1.23 android release
         }
     )
 
