@@ -6,7 +6,7 @@ from pathlib import Path
 import importlib
 
 from src.send_ntfy import post_ntfy
-from src.ntfy_templates import sale_ntfy, non_sale_ntfy
+from src.ntfy_templates import on_sale, below_max_price, in_stock
 from src.log_handler import init_logger
 from src.datasources.registry import SourceRegistry
 
@@ -14,15 +14,15 @@ load_dotenv()
 
 DATASOURCE_PATH = Path("src\\datasources\\")
 
-# GET RID OF NOTIFICATION_RULES. WHY WOULD THE USER CARE IF PRODUCT IS ON SALE OR NOT AS LONG AS IT IS BELOW 'max_price', THEREFORE JUST HAVE A 'max_price' FIELD AND THEN IN THE MAIN FLOW CHECK IF EITHER REGULAR PRICE OR SALE PRICE IS BELOW 'max_price' AND FIRE APPROPRIATE NOTIFICAITON
-PRODUCTS = [
+# GET RID OF NOTIFICATION_RULES. WHY WOULD THE USER CARE IF PRODUCT IS ON SALE OR NOT AS LONG AS IT IS BELOW 'user_max_price', THEREFORE JUST HAVE A 'max_price' FIELD AND THEN IN THE MAIN FLOW CHECK IF EITHER REGULAR PRICE OR SALE PRICE IS BELOW 'max_price' AND FIRE APPROPRIATE NOTIFICAITON
+WATCHLIST = [
     {  # airpods pro 3
         "identifiers": {
             "bestbuy": 6376563,
             "amazon": "B0FQFB8FMG"
         },
-        # only notifies if product is in stock AND on sale below max_price
-        "max_price": 200,
+        # only notifies if product is in stock AND on sale below user_max_price
+        "user_max_price": 200,
         "ntfy_topic": os.getenv("NTFY_TOPIC_URL")  # maybe get rid of this - see .env comments
     },
     {  # lenovo legion go 2
@@ -31,7 +31,7 @@ PRODUCTS = [
             "costco": "some_sku_number",
             "lenovo": "some_sku_number"
         },
-        "max_price": None,
+        "user_max_price": None,
         "ntfy_topic": os.getenv("NTFY_TOPIC_URL")  # maybe get rid of this - see .env comments
     },
     {  # LG 27 inch 1440p 180hz monitor (TESTING)
@@ -40,7 +40,7 @@ PRODUCTS = [
             "bestbuy": 6575404,
             "bhvideo": "some_sku_number"
         },
-        "max_price": 350,
+        "user_max_price": 350,
         "ntfy_topic": os.getenv("NTFY_TOPIC_URL")  # maybe get rid of this - see .env comments
     }
 ]
@@ -118,28 +118,30 @@ def main():
     sources = SourceRegistry.all()
 
     # TODO: implement multi threading such that process exec for each product is in its own thread
-    for product in PRODUCTS:
-        for src_name, identifier in product["identifiers"].items():
+    for item in WATCHLIST:
+        for src_name, identifier in item["identifiers"].items():
             if src_name in sources:
                 # fetch standardized product data
                 data_fetcher = SourceRegistry.get(src_name)
-                data = data_fetcher.fetch_product(identifier)
+                product = data_fetcher.fetch_product(identifier)
 
                 # check if data meets user reqs
-                if data.in_stock:
-                    if product["max_price"] is not None:
-                        if data.on_sale and data.sale_price <= product["max_price"]:
-                            pass
-                            # fire noti saying that product is in stock AND on sale AND below max_price
+                if product.in_stock:
+                    if item["user_max_price"] is not None:
+                        if product.on_sale and product.sale_price <= item["user_max_price"]:
+                            # fire noti saying that product is in stock AND on sale AND below user_max_price
+                            on_sale_body = on_sale(product, item["user_max_price"])
+                            post_ntfy(on_sale_body, os.getenv("NTFY_TOPIC_URL"))
 
+                        elif product.regular_price <= item["user_max_price"]:
+                            # fire noti saying product is in stock AND below user_max_price
+                            below_max_price_body = below_max_price(product, item["user_max_price"])
+                            post_ntfy(below_max_price_body, os.getenv("NTFY_TOPIC_URL"))
 
-                        elif data.regular_price <= product["max_price"]:
-                            pass
-                            # fire noti saying product is in stock AND below max_price
-
-                    elif product["max_price"] is None:
-                        pass
+                    elif item["user_max_price"] is None:
                         # fire noti saying product is in stock
+                        in_stock_body = in_stock(product)
+                        post_ntfy(in_stock_body, os.getenv("NTFY_TOPIC_URL"))
 
 
 if __name__ == "__main__":
