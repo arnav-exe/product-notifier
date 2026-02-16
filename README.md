@@ -1,31 +1,66 @@
-# conditions to send emails:
- 1. onSale = true (regardless of price)
-    * send email saying product is on sale, and state salePrice
- 1. regularPrice <= desired price
-    * does not matter if product is on sale or not
-
-# Other factors to consider:
- 1. if notifying about sale
-    1. (str) orderable = Available
-    1. (float) dollarSavings
-    1. (str) percentSavings
-    1. (str) url
-
- 1. if notifying about regular price coming down
-    1. (str) orderable = Available
-    1. (str) url
-
-NOTE: keys with missing values are either `empty` or `null`
-
-# PROBLEMS:
- 1. 'send_ntfy.py' is too opinionated - too much default data for bestbuy specifically
- 1. separate bestbuy and amazon fetching into 2 files?? - need to modularize this to allow future additiosn (EG: returned webscraper data)
- 1. use function decorators to cleanly separate logging?
-
-# TODO:
- 1. implement strategy pattern to abstract API querying from main (requires defining own internal representatin of data)
- 1. implement adapters to translate returned API data into compatible format
-
 # USAGE
  1. `pip install -r requirements.txt` inside project root
  1. `npm install git+https://github.com/arnav-exe/amazon-product-api.git#7a2d602`
+
+
+
+# TODO
+ - RETRIES + EXPONENTIAL BACKOFF WILL HAVE TO BE A FUNCTION DECORATOR OR SMTN GLOBAL - DO NOT IMPLEMENT THIS PER DATASOURCE
+ - PASS LOGGER TO EACH DATASOURCE INSTANTIATION, FOR GRANULAR, PER-DATASOURCE LOGGING. FORMAT SHOUDL LOOKE LIKE THIS:
+ "{timestamp} [{error_severity} - {data_source}]: {log_message}"
+ CAN POTENTIALLY DEFINE THIS IN THE FORMATTER
+ - add other datasources
+
+
+# FLOW:
+ 1. for each product:
+    1. for each identifier inside a product:
+        1. if we have a matching data source for that particular identiifer, run 'fetch_product()' which will return data in Product obj format
+        1. check in stock and sale keys against user specification
+        1. if any condition is met, fire appropriate ntfy
+
+
+
+# SOURCES TO ADD:
+ - amazon - amazon product api
+ - lenovo website - crawl4ai
+ - costco - crawl4ai
+ - bhvideo - crawl4ai
+
+ (for ssds)
+ - micro center - [check if they have own or 3rd party api]
+ - newegg - [check if they have own or 3rd party api]
+
+
+
+# Goal of this refactor
+ * separate concerns into 3 distinct categories:
+    1. fetching data from src (via api)
+    1. normalizing data into internal representation
+    1. consuming normalized data
+
+
+# Internal Representation
+```python
+ir = {
+    "identifier": "str",
+    "product_name": "str",
+    "in_stock": "bool",
+    "on_sale": "bool",
+    "sale_price": "float",
+    "regular_price": "float",
+    "dollar_savings": "float",
+    "percent_savings": "float",
+    "retailer": "str",
+    "product_url": "str",
+    "retailer_icon": "str"
+}
+```
+
+This state will be stored in a python `dataclass`. Dataclasses should be used whenver the class you are defining holds a lot of attributes. Therefore, dataclasses are typically used over regular classes to store state.
+
+
+# TODO:
+ 1. get data of an amazon product that is in stock AND NOT on sale (to confirm that if product is not on sale, current_price == before_price) - maybe lgtv
+
+
