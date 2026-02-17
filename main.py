@@ -43,64 +43,6 @@ WATCHLIST = [
 ]
 
 
-def parse_and_notify(product: dict, user_product_data: dict):
-    product_name = " ".join(product["name"].split()[:5])
-
-    sent_ntfy = False
-
-    if product["orderable"] == "Available" and product["onSale"]:  # if sale
-        ntfy_body = sale_ntfy(product_name, product["salePrice"], product["regularPrice"], product["dollarSavings"], product["percentSavings"], product["url"], product["priceUpdateDate"])
-
-        post_ntfy(ntfy_body, user_product_data["ntfy_topic"])
-
-        sent_ntfy = True
-
-    # if not sale but price <= desired price
-    elif product["orderable"] == "Available" and product["regularPrice"] <= user_product_data["desired_price"]:
-        ntfy_body = non_sale_ntfy(product_name, product["regularPrice"], user_product_data["desired_price"], product["url"], product["priceUpdateDate"])
-
-        post_ntfy(ntfy_body, user_product_data["ntfy_topic"])
-
-        sent_ntfy = True
-
-    return sent_ntfy
-
-
-def process_products(logger, p):
-    logger.info("")
-    # exponential backoff params
-    retries = 10
-    delay = 2
-    exp = 0
-
-    url = f"https://api.bestbuy.com/v1/products/{p['bestbuy_sku']}.json?show={FIELDS}&apiKey={os.getenv('BESTBUY_API')}"
-
-    # fetch product data from API
-    for i in range(retries):  # exponential backoff
-        data = get_product_data(url, logger)
-
-        if "errorCode" in data:  # if returned dict contains 'errorCode' (implying fetch was unsuccessful)
-            logger.warning(data)
-            sleep_time = (delay ** exp) / 2
-            time.sleep(sleep_time)
-            exp += 1
-
-        else:
-            break
-
-    # parse returned data and fire noti
-    sent_ntfy = parse_and_notify(data, p)
-
-    if sent_ntfy:
-        logger.info(f"Sent ntfy notification for product: {p['bestbuy_sku']}")
-
-    else:
-        logger.info(f"Did NOT send ntfy notification for product {p['bestbuy_sku']} (either out of stock or above desired price)")
-
-    logger.info("")
-    logger.info("="*80)
-
-
 # auto import all modules inside 'src/datasources' to trigger source registry
 def import_datasources(logger):
     SourceRegistry.set_logger(logger)
@@ -113,10 +55,6 @@ def import_datasources(logger):
             logger.info(f"Registered datasource: {file.split('.')[0]}")
 
 
-def jprint(json_data):
-    print(json.dumps(json_data, indent=2))
-
-# do all processing stages for 1 product at a time
 def main(logger):
     sources = SourceRegistry.all()
     logger.info(f"Available datasources: {list(sources.keys())}")
