@@ -59,12 +59,3 @@ class BestbuySource(DataSource):
 
 # manually register datasource to registry
 SourceRegistry.register(BestbuySource)
-
-if __name__ == "__main__":
-    bestbuy = BestbuySource()
-
-    print()
-
-    print(bestbuy.source_name)
-
-    res = bestbuy.fetch_raw("6376563")
