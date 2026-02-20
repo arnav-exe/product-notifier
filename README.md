@@ -1,10 +1,10 @@
-# USAGE
+# Usage
  1. `pip install -r requirements.txt`
  1. `crawl4ai-setup`
  1. `npm install git+https://github.com/arnav-exe/amazon-product-api.git#7a2d602`
 
 
-# FLOW:
+# Flow:
  1. for each product:
     1. for each identifier inside a product:
         1. if we have a matching data source for that particular identiifer, run 'fetch_product()' which will return data in Product obj format
@@ -20,29 +20,32 @@
 
 
 
-# Goal of this refactor
- * separate concerns into 3 distinct categories:
+# Strategy
+
+
+# patterns used:
+ 1. strategy pattern - main calls a generic 'execute' function to fetch data regardless of datasource. 
+ 1. adapter pattern - Each datasource is separately implemented, following a 3 stage flow:
     1. fetching data from src (via api)
-    1. normalizing data into internal representation
-    1. consuming normalized data
+    1. conforming data into internal representation (shown below)
+    1. consuming normalized data  
 
 
 
 # Internal Representation
+From the `schema.py` Product dataclass
 ```python
-ir = {
-    "identifier": "str",
-    "product_name": "str",
-    "in_stock": "bool",
-    "on_sale": "bool",
-    "sale_price": "float",
-    "regular_price": "float",
-    "dollar_savings": "float",
-    "percent_savings": "float",
-    "retailer": "str",
-    "product_url": "str",
-    "retailer_icon": "str"
-}
+class Product:
+    identifier: str  # EG: sku, asin code. etc.
+    product_name: str
+    in_stock: bool
+    on_sale: bool
+    sale_price: float
+    regular_price: float
+    product_url: str
+    retailer_name: str
+    retailer_logo: str  # retailer logo url
+
 ```
 
 This state will be stored in a python `dataclass`. Dataclasses should be used whenver the class you are defining holds a lot of attributes. Therefore, dataclasses are typically used over regular classes to store state.
