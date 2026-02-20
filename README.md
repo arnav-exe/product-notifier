@@ -4,7 +4,7 @@
 
 
 # TODO:
- - shift exponential backoff retry logic to each datasource instead of base because each datasource throws errors differently so need specialist logic to handle each case
+ - add multithreading - assign 1 thread to each datasource
 
 
 # FLOW:

@@ -33,7 +33,6 @@ WATCHLIST = [
     {  # LG 27 inch 1440p 180hz monitor (TESTING)
         "identifiers": {
             "bestbuy": 6575404,
-            "bhvideo": "some_sku_number"
         },
         "user_max_price": 350,
         "ntfy_topic": os.getenv("NTFY_TOPIC_URL")
