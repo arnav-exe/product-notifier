@@ -2,11 +2,17 @@ import asyncio
 import json
 import re
 import sys
-
+import logging
+import time
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 
+try:
+    from .base import DataSource
+except ImportError:
+    from base import DataSource
+from ..schema import Product
+from .registry import SourceRegistry
 
-URL = "https://www.lenovo.com/us/en/p/handheld/legion-go-gen-2/83n0000aus"
 
 IN_STOCK_URIS = frozenset({
     "http://schema.org/InStock",
@@ -21,7 +27,7 @@ NOT_IN_STOCK_RE = re.compile(
     re.IGNORECASE,
 )
 EST_VALUE_RE = re.compile(r"Est\s+Value[^$]*\$([\d,]+(?:\.\d{1,2})?)", re.IGNORECASE)
-PERCENT_OFF_RE   = re.compile(r"\d+\s*%\s*off", re.IGNORECASE)
+PERCENT_OFF_RE = re.compile(r"\d+\s*%\s*off", re.IGNORECASE)
 
 SCAN_WINDOW = 1000  # product info usually appears within first 400 chars of <main> - restrict around that
 
@@ -78,75 +84,118 @@ def _parse_price(value):
         return None
 
 
-async def scrape(url) -> dict:
-    browser_cfg = BrowserConfig(
-        browser_type="undetected",  # avoid bot tedection
-        headless=True,
-        verbose=False
-    )
+class LenovoSource(DataSource):
+    source_name = "lenovo"
 
-    run_cfg = CrawlerRunConfig(
-        cache_mode=CacheMode.BYPASS,
-        js_code=_JS,
-        delay_before_return_html=3.0,
-        page_timeout=60_000,
-        verbose=False,
-    )
-
-    async with AsyncWebCrawler(config=browser_cfg) as crawler:
-        result = await crawler.arun(url=url, config=run_cfg)
-
-    if not result.success:
-        raise RuntimeError(f"Failed to load page: {result.error_message}")
-
-    if not (m := INJECTED_RE.search(result.html or "")):  # holy walrus operator 
-        raise RuntimeError("Injected data not found in html")
-
-    try:
-        data = json.loads(m.group(1))
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(f"Failed to parse injected json: {exc}") from exc
-    if data.get("price") is None:
-        raise RuntimeError("No price found in json-ld")
-
-    scan = data.get("mainText", "")[:SCAN_WINDOW]
-    em = EST_VALUE_RE.search(scan)
-    is_on_sale = bool(em or PERCENT_OFF_RE.search(scan))
-    current_price = _parse_price(data["price"])
-    regular_price = _parse_price(em.group(1)) if (is_on_sale and em) else current_price
-
-    return {
-        "product_name":  data.get("name"),
-        "is_in_stock":   (data.get("availability") in IN_STOCK_URIS)
-                         and not NOT_IN_STOCK_RE.search(scan),
-        "is_on_sale":    is_on_sale,
-        "regular_price": regular_price,
-        "sale_price":    current_price,
-    }
+    def __init__(self, logger: logging.Logger = None):
+        super().__init__(logger)
 
 
-def main():
-    # enforce utf-8 encoding
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    async def fetch_raw(self, identifier: str) -> dict:
+        browser_cfg = BrowserConfig(
+            browser_type="undetected",  # avoid bot detection
+            headless=True,
+            verbose=False
+        )
 
-    url = sys.argv[1] if len(sys.argv) > 1 else URL
-    print(f"Scraping: {url}")
-    print("-" * 60)
+        run_cfg = CrawlerRunConfig(
+            cache_mode=CacheMode.BYPASS,
+            js_code=_JS,
+            delay_before_return_html=3.0,
+            page_timeout=60_000,
+            verbose=False,
+        )
 
-    try:
-        p = asyncio.run(scrape(url))
-    except RuntimeError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        sys.exit(1)
+        self.logger.debug(f"crawl4ai GET request: {identifier}")
 
-    regular, sale = p["regular_price"], p["sale_price"]
-    print(f"Product Name : {p['product_name']}")
-    print(f"In Stock : {p['is_in_stock']}")
-    print(f"On Sale : {p['is_on_sale']}")
-    print(f"Regular Price: {f'${regular:.2f}' if regular is not None else 'N/A'}")
-    print(f"Sale Price : {f'${sale:.2f}' if sale is not None else 'N/A'}")
+        async with AsyncWebCrawler(config=browser_cfg) as crawler:
+            result = await crawler.arun(url=identifier, config=run_cfg)
+
+        return result
+
+
+    def parse(self, raw_data, url):
+        try:
+            data = json.loads(raw_data)
+        except json.JSONDecodeError as exc:
+            self.logger.warning(f"Failed to parse injected json: {exc}")
+
+        if data.get("price") is None:
+            self.logger.warning("No price found in json-ld")
+
+        scan = data.get("mainText", "")[:SCAN_WINDOW]
+        em = EST_VALUE_RE.search(scan)
+        is_on_sale = bool(em or PERCENT_OFF_RE.search(scan))
+        current_price = _parse_price(data["price"])
+        regular_price = _parse_price(em.group(1)) if (is_on_sale and em) else current_price
+
+        return Product(
+            identifier=url,
+            product_name=" ".join(data.get("name").split()[:5]),
+            in_stock=(data.get("availability") in IN_STOCK_URIS) and not NOT_IN_STOCK_RE.search(scan),
+            on_sale=is_on_sale,
+            regular_price=regular_price,
+            sale_price=current_price,
+            product_url=url,
+            retailer_name="Lenovo",
+            retailer_logo="https://upload.wikimedia.org/wikipedia/commons/b/bd/Branding_lenovo-logo_lenovologoposred_low_res.png"
+        )
+
+
+    def fetch_product(self, identifier: str):
+        # enforce utf-8 encoding
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+        retries = 10
+        delay = 2
+        exp = 0
+
+        try:
+            for i in range(retries):
+                self.logger.debug(f"Fetching product data for product: {identifier} (attempt: {i})")
+
+                response = asyncio.run(self.fetch_raw(identifier))
+
+                if not response.success:
+                    if i == retries - 1:
+                        self.logger.warning(f"Failed to load page: {response.error_message}")
+                        return None
+
+                    else:
+                        sleep_time = (delay ** exp) / 2
+                        time.sleep(sleep_time)
+                        exp += 1
+
+
+                if not (m := INJECTED_RE.search(response.html or "")):  # holy walrus operator 
+                    if i == retries - 1:
+                        self.logger.warning("Injected data not found in html")
+                        return None
+
+                    else:
+                        sleep_time = (delay ** exp) / 2
+                        time.sleep(sleep_time)
+                        exp += 1
+
+            product = self.parse(m.group(1), identifier)
+
+            return product
+
+        except Exception as e:
+            self.logger.error(f"[{identifier}] Failed to fetch/parse: {e}")
+            return None
+
+
+# register as DataSource
+SourceRegistry.register(LenovoSource)
 
 
 if __name__ == "__main__":
-    main()
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    l = LenovoSource(logger)
+
+    url = "https://www.lenovo.com/us/en/p/handheld/legion-go-gen-2/83n0000aus"
+    print(l.fetch_product(url))

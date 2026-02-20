@@ -17,7 +17,6 @@
 
 
 # SOURCES TO ADD:
- - lenovo website - crawl4ai
  - costco - crawl4ai
  - bhvideo - crawl4ai
 
