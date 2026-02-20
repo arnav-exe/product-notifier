@@ -20,10 +20,7 @@
 
 
 
-# Strategy
-
-
-# patterns used:
+# Patterns used:
  1. strategy pattern - main calls a generic 'execute' function to fetch data regardless of datasource. 
  1. adapter pattern - Each datasource is separately implemented, following a 3 stage flow:
     1. fetching data from src (via api)
@@ -35,6 +32,7 @@
 # Internal Representation
 From the `schema.py` Product dataclass
 ```python
+@dataclass
 class Product:
     identifier: str  # EG: sku, asin code. etc.
     product_name: str
@@ -48,7 +46,6 @@ class Product:
 
 ```
 
-This state will be stored in a python `dataclass`. Dataclasses should be used whenver the class you are defining holds a lot of attributes. Therefore, dataclasses are typically used over regular classes to store state.
 
 
 # Future Work
