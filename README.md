@@ -2,6 +2,7 @@
  1. `pip install -r requirements.txt`
  1. `crawl4ai-setup`
  1. `npm install git+https://github.com/arnav-exe/amazon-product-api.git#7a2d602`
+ 1. create `.env` file in the root directory with these two keys: `BESTBUY_API_KEY`, `NTFY_TOPIC_URL` (see `.env.example` for formats)
 
 
 # Flow:
