@@ -51,7 +51,7 @@ class AmazonSource(DataSource):
 
     def fetch_product(self, identifier: str):
         # exponential backoff params
-        retries = 10
+        retries = 5
         delay = 2
         exp = 0
 
